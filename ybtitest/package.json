@@ -1,0 +1,48 @@
+Last login: Mon Nov 10 23:50:48 on ttys000
+kou@kounoMacBook-Air ~ % cd ~/Desktop/YBTI
+rm package.json
+kou@kounoMacBook-Air YBTI % nano package.json
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  UW PICO 5.09                   File: package.json                   Modified  
+
+{
+  "name": "ybti",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
+  }
+}
+
+
+
+
+^G Get Help  ^O WriteOut  ^R Read File ^Y Prev Pg   ^K Cut Text  ^C Cur Pos   
+^X Exit      ^J Justify   ^W Where is  ^V Next Pg   ^U UnCut Text^T To Spell  
