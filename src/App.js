@@ -1,10 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
 
-/**
- * YBTI (Your Blooming Type Indicator) – Demo Web App（JS版）
- * パステルカラー／4色区分／4 or 16 モード選択／結果一覧／イラスト＋名言
- */
-
 // 4軸（色は質問カード背景に適用）
 const AXES = [
   { key: "IE", left: "I（内的充足）", right: "E（外的体験）", color: "bg-pink-100" },
@@ -14,17 +9,7 @@ const AXES = [
 ];
 
 // 年代選択肢（10代〜90代）
-const AGE_BANDS = [
-  "10代",
-  "20代",
-  "30代",
-  "40代",
-  "50代",
-  "60代",
-  "70代",
-  "80代",
-  "90代",
-];
+const AGE_BANDS = ["10代", "20代", "30代", "40代", "50代", "60代", "70代", "80代", "90代"];
 
 // 設問プール（各軸5問＝最大20問）
 const QUESTION_POOL = [
@@ -53,17 +38,6 @@ const QUESTION_POOL = [
   { id: "q19", axis: "SC", text: "未知の環境に入ると刺激的で楽しい", reverse: true },
   { id: "q20", axis: "SC", text: "安定した基盤がないと落ち着かない", reverse: false },
 ];
-
-// mode: "4" | "16"
-function buildQuestions(mode) {
-  const take = mode === "4" ? 3 : 5; // 4: 各軸3問(12問) / 16: 各軸5問(20問)
-  const byAxis = { IE: [], RS: [], NF: [], SC: [] };
-  for (const q of QUESTION_POOL) {
-    const arr = byAxis[q.axis];
-    if (arr.length < take) arr.push(q);
-  }
-  return AXES.flatMap((ax) => byAxis[ax.key]);
-}
 
 // 名言（ランダム）— PEANUTS（スヌーピー他）
 const PEANUTS_QUOTES = [
@@ -105,11 +79,11 @@ const DESCRIPTIONS_4 = {
   "E-F": { name: "越境するフロントランナー", summary: "外向×未来。人とアイデアをつなぐ。", img: "🚩" },
 };
 
-// localStorage付き useState
+// localStorage に状態を保存するカスタムフック
 function useLocal(key, initial) {
   const [state, setState] = useState(() => {
     try {
-      const v = localStorage.getItem(key);
+      const v = window.localStorage.getItem(key);
       return v ? JSON.parse(v) : initial;
     } catch {
       return initial;
@@ -118,7 +92,7 @@ function useLocal(key, initial) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(state));
+      window.localStorage.setItem(key, JSON.stringify(state));
     } catch {
       // ignore
     }
@@ -127,10 +101,19 @@ function useLocal(key, initial) {
   return [state, setState];
 }
 
-// 質問カード
+// mode="4" or "16" に応じて質問を選ぶ
+function buildQuestions(mode) {
+  const take = mode === "4" ? 3 : 5; // 4: 各軸3問(12問) / 16: 各軸5問(20問)
+  const byAxis = { IE: [], RS: [], NF: [], SC: [] };
+  for (const q of QUESTION_POOL) {
+    const arr = byAxis[q.axis];
+    if (arr.length < take) arr.push(q);
+  }
+  return AXES.flatMap((ax) => byAxis[ax.key]);
+}
+
 function QuestionCard({ q, value, onChange }) {
-  const axis = AXES.find((a) => a.key === q.axis);
-  const color = axis ? axis.color : "bg-white";
+  const color = AXES.find((a) => a.key === q.axis)?.color ?? "bg-white";
   return (
     <div className={`rounded-2xl p-4 md:p-6 shadow border ${color}`}>
       <p className="text-lg md:text-xl mb-3">{q.text}</p>
@@ -142,9 +125,7 @@ function QuestionCard({ q, value, onChange }) {
               key={n}
               onClick={() => onChange(n)}
               className={`w-9 h-9 md:w-10 md:h-10 rounded-full border ${
-                value === n
-                  ? "bg-black text-white border-black"
-                  : "bg-white hover:bg-gray-50"
+                value === n ? "bg-black text-white border-black" : "bg-white hover:bg-gray-50"
               }`}
             >
               {n}
@@ -157,29 +138,25 @@ function QuestionCard({ q, value, onChange }) {
   );
 }
 
-// タイプ計算
 function computeType(answers, questions) {
   const sums = { IE: 0, RS: 0, NF: 0, SC: 0 };
   for (const q of questions) {
     const v = answers[q.id];
     if (!v) continue;
-    const delta = q.reverse ? -(v - 3) : v - 3; // 中央(3)
+    const delta = q.reverse ? -(v - 3) : v - 3; // 中央(3)からの差
     sums[q.axis] += delta;
   }
-  const code16 = AXES.map((ax) =>
-    sums[ax.key] >= 0 ? ax.left[0] : ax.right[0]
-  ).join("-");
-  const code4 = `${code16.split("-")[0]}-${code16.split("-")[2]}`; // IE × NF
+
+  const parts = AXES.map((ax) => (sums[ax.key] >= 0 ? ax.left[0] : ax.right[0]));
+  const code16 = parts.join("-");
+  const code4 = `${parts[0]}-${parts[2]}`; // IE × NF
+
   return { sums, code16, code4 };
 }
 
-// 軸バー
 function AxisBar({ value, mode }) {
   const range = mode === "4" ? 6 : 10; // 4:±6, 16:±10 目安
-  const pct = Math.max(
-    0,
-    Math.min(100, Math.round(((value + range) / (range * 2)) * 100))
-  );
+  const pct = Math.max(0, Math.min(100, Math.round(((value + range) / (range * 2)) * 100)));
   return (
     <div>
       <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden">
@@ -193,7 +170,6 @@ function AxisBar({ value, mode }) {
   );
 }
 
-// 結果表示
 function ResultView({
   answers,
   onReset,
@@ -202,6 +178,7 @@ function ResultView({
   questions,
   onUpgrade,
   gender,
+  richnessScore,
 }) {
   const { code16, code4, sums } = useMemo(
     () => computeType(answers, questions),
@@ -217,10 +194,9 @@ function ResultView({
     mode === "4"
       ? desc4?.summary || "あなたの傾向の要約です。"
       : desc16?.summary || "あなたの傾向の要約です。";
-  const img = mode === "4" ? (desc4?.img || "🌈") : (desc16?.img || "🌈");
+  const img = mode === "4" ? desc4?.img || "🌈" : desc16?.img || "🌈";
 
-  const quote =
-    PEANUTS_QUOTES[Math.floor(Math.random() * PEANUTS_QUOTES.length)];
+  const quote = PEANUTS_QUOTES[Math.floor(Math.random() * PEANUTS_QUOTES.length)];
 
   return (
     <div className="space-y-6">
@@ -237,6 +213,32 @@ function ResultView({
         <p className="opacity-80 mt-2">{summary}</p>
       </div>
 
+      {/* あなたの今のゆたかさ点数 */}
+      {typeof richnessScore === "number" && (
+        <div className="rounded-2xl p-5 bg-white shadow border">
+          <h3 className="font-semibold mb-2">あなたの今のゆたかさ点数</h3>
+          <p className="text-sm opacity-70 mb-2">
+            0〜100点のうち、今の感覚でつけた「ゆたかさ」の自己評価です。
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-black"
+                  style={{ width: `${Math.max(0, Math.min(100, richnessScore))}%` }}
+                />
+              </div>
+            </div>
+            <div className="w-16 text-right font-bold text-lg">{richnessScore}点</div>
+          </div>
+          <div className="flex justify-between text-xs mt-1 opacity-70">
+            <span>0</span>
+            <span>50</span>
+            <span>100</span>
+          </div>
+        </div>
+      )}
+
       {/* 名言カード */}
       <div className="rounded-2xl p-5 bg-white shadow border text-center">
         <blockquote className="italic text-lg">“{quote.text}”</blockquote>
@@ -245,13 +247,8 @@ function ResultView({
 
       {/* 軸バー（4モードはIE/NFのみ） */}
       <div className="grid md:grid-cols-2 gap-4">
-        {AXES.filter(
-          (ax) => mode === "16" || ax.key === "IE" || ax.key === "NF"
-        ).map((ax) => (
-          <div
-            key={ax.key}
-            className={`rounded-2xl p-5 shadow border ${ax.color}`}
-          >
+        {AXES.filter((ax) => mode === "16" || ax.key === "IE" || ax.key === "NF").map((ax) => (
+          <div key={ax.key} className={`rounded-2xl p-5 shadow border ${ax.color}`}>
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold">
                 {ax.left} ↔ {ax.right}
@@ -267,37 +264,30 @@ function ResultView({
       <div className="rounded-2xl p-5 bg-white/70 border">
         <h3 className="font-semibold mb-3">他のタイプを見る</h3>
         <div className="grid md:grid-cols-2 gap-3">
-          {(mode === "4"
-            ? Object.entries(DESCRIPTIONS_4)
-            : Object.entries(DESCRIPTIONS_16)
-          ).map(([k, v]) => (
-            <div
-              key={k}
-              className="rounded-2xl p-3 bg-white border shadow-sm flex items-center gap-3"
-            >
-              <span className="text-2xl">{v.img}</span>
-              <div>
-                <h4 className="font-semibold">{v.name}</h4>
-                <p className="text-xs opacity-70">{v.summary}</p>
+          {(mode === "4" ? Object.entries(DESCRIPTIONS_4) : Object.entries(DESCRIPTIONS_16)).map(
+            ([k, v]) => (
+              <div
+                key={k}
+                className="rounded-2xl p-3 bg-white border shadow-sm flex items-center gap-3"
+              >
+                <span className="text-2xl">{v.img}</span>
+                <div>
+                  <h4 className="font-semibold">{v.name}</h4>
+                  <p className="text-xs opacity-70">{v.summary}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3 justify-center">
         {mode === "4" && (
-          <button
-            onClick={onUpgrade}
-            className="px-5 py-3 rounded-xl border bg-white hover:bg-gray-50"
-          >
+          <button onClick={onUpgrade} className="px-5 py-3 rounded-xl border">
             さらに詳しく（16パターンへ）
           </button>
         )}
-        <button
-          onClick={onReset}
-          className="px-5 py-3 rounded-xl border bg-white hover:bg-gray-50"
-        >
+        <button onClick={onReset} className="px-5 py-3 rounded-xl border">
           もう一度診断する
         </button>
       </div>
@@ -305,13 +295,13 @@ function ResultView({
   );
 }
 
-// メイン App
 export default function App() {
   const [step, setStep] = useLocal("ybtiv1_step", "intro"); // "intro" | "quiz" | "result"
   const [answers, setAnswers] = useLocal("ybtiv1_answers", {});
   const [ageBand, setAgeBand] = useLocal("ybtiv1_ageBand", "");
   const [mode, setMode] = useLocal("ybtiv1_mode", "4"); // "4" | "16"
   const [gender, setGender] = useLocal("ybtiv1_gender", "");
+  const [richnessScore, setRichnessScore] = useLocal("ybtiv1_richnessScore", 50); // 0〜100
 
   const questions = useMemo(() => buildQuestions(mode), [mode]);
   const total = questions.length; // 4:12問 / 16:20問
@@ -347,7 +337,6 @@ export default function App() {
   const upgradeTo16 = () => {
     setMode("16");
     setStep("quiz");
-    setAnswers({});
   };
 
   return (
@@ -367,9 +356,7 @@ export default function App() {
                     key={b}
                     onClick={() => setAgeBand(b)}
                     className={`px-3 py-1 rounded-full border ${
-                      ageBand === b
-                        ? "bg-black text-white"
-                        : "bg-white hover:bg-gray-50"
+                      ageBand === b ? "bg-black text-white" : "bg-white hover:bg-gray-50"
                     }`}
                   >
                     {b}
@@ -386,20 +373,14 @@ export default function App() {
                     key={g}
                     onClick={() => setGender(g)}
                     className={`px-3 py-1 rounded-full border ${
-                      gender === g
-                        ? "bg-black text-white"
-                        : "bg-white hover:bg-gray-50"
+                      gender === g ? "bg-black text-white" : "bg-white hover:bg-gray-50"
                     }`}
                   >
                     {g}
                   </button>
                 ))}
               </div>
-              {!gender && (
-                <p className="text-xs mt-2 opacity-60">
-                  ※はじめる前に性別を選んでください。
-                </p>
-              )}
+              {!gender && <p className="text-xs mt-2 opacity-60">※はじめる前に性別を選んでください。</p>}
             </div>
 
             <div className="rounded-2xl p-6 bg-white shadow border">
@@ -408,9 +389,7 @@ export default function App() {
                 <button
                   onClick={() => setMode("4")}
                   className={`px-3 py-2 rounded-full border ${
-                    mode === "4"
-                      ? "bg-black text-white"
-                      : "bg-white hover:bg-gray-50"
+                    mode === "4" ? "bg-black text-white" : "bg-white hover:bg-gray-50"
                   }`}
                 >
                   4パターン分析（クイック・12問）
@@ -418,9 +397,7 @@ export default function App() {
                 <button
                   onClick={() => setMode("16")}
                   className={`px-3 py-2 rounded-full border ${
-                    mode === "16"
-                      ? "bg-black text-white"
-                      : "bg-white hover:bg-gray-50"
+                    mode === "16" ? "bg-black text-white" : "bg-white hover:bg-gray-50"
                   }`}
                 >
                   16パターン分析（詳細・20問）
@@ -431,9 +408,7 @@ export default function App() {
             <button
               onClick={start}
               className={`px-5 py-3 rounded-xl w-full ${
-                ageBand && gender
-                  ? "bg-black text-white"
-                  : "bg-gray-300 text-gray-600"
+                ageBand && gender ? "bg-black text-white" : "bg-gray-300 text-gray-600"
               }`}
             >
               診断をはじめる
@@ -451,12 +426,35 @@ export default function App() {
                 onChange={(v) => setAnswer(q.id, v)}
               />
             ))}
+
+            {/* ゆたかさ点数スライダー */}
+            <div className="rounded-2xl p-6 bg-white shadow border">
+              <h2 className="font-semibold mb-3">あなたの今のゆたかさ点数</h2>
+              <p className="text-sm opacity-70 mb-4">
+                直感的に、今の自分の「ゆたかさ」を 0〜100点で教えてください。（10点刻み）
+              </p>
+              <div className="flex items-center gap-4">
+                <span className="text-xs opacity-70 w-6 text-left">0</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={10}
+                  value={richnessScore}
+                  onChange={(e) => setRichnessScore(Number(e.target.value))}
+                  className="flex-1 accent-black"
+                />
+                <span className="text-xs opacity-70 w-10 text-right">100</span>
+              </div>
+              <div className="text-right mt-2 text-sm font-semibold">
+                現在：<span className="text-lg">{richnessScore}</span> 点
+              </div>
+            </div>
+
             <button
               onClick={finish}
               className={`px-5 py-3 rounded-xl w-full ${
-                filled < total
-                  ? "bg-gray-300 text-gray-600"
-                  : "bg-black text-white"
+                filled < total ? "bg-gray-300 text-gray-600" : "bg-black text-white"
               }`}
             >
               結果を見る
@@ -473,6 +471,7 @@ export default function App() {
             questions={questions}
             onUpgrade={upgradeTo16}
             gender={gender}
+            richnessScore={richnessScore}
           />
         )}
       </div>
