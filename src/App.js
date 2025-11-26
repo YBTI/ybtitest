@@ -305,10 +305,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-blue-50 text-gray-900">
-      <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-6">
+      <div className="min-h-screen bg-gradient-to-b from-blue-500 via-blue-300 to-white text-gray-900">
+    <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-6">
         <h1 className="text-3xl md:text-4xl font-bold text-center">
-          YBTI – ゆたかさ診断（16タイプ版デモ）
+          YBTI – ゆたかさ診断
         </h1>
 
         {step === "intro" && (
