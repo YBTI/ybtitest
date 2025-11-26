@@ -71,14 +71,6 @@ const DESCRIPTIONS_16 = {
   "E-S-F-C": { name: "越境するパイオニア", summary: "未踏を切り拓く推進力。", img: "🚀" },
 };
 
-// 4タイプ（IE×NFの2軸のみ）
-const DESCRIPTIONS_4 = {
-  "I-N": { name: "静けさを味わう人", summary: "内省×現在。小さな喜びを丁寧に。", img: "🍵" },
-  "I-F": { name: "静かな設計者", summary: "内省×未来。静かな時間で構想を。", img: "🧩" },
-  "E-N": { name: "祝祭のムードメーカー", summary: "外向×現在。今を楽しみ場を明るく。", img: "🎈" },
-  "E-F": { name: "越境するフロントランナー", summary: "外向×未来。人とアイデアをつなぐ。", img: "🚩" },
-};
-
 // localStorage に状態を保存するカスタムフック
 function useLocal(key, initial) {
   const [state, setState] = useState(() => {
@@ -101,9 +93,9 @@ function useLocal(key, initial) {
   return [state, setState];
 }
 
-// mode="4" or "16" に応じて質問を選ぶ
-function buildQuestions(mode) {
-  const take = mode === "4" ? 3 : 5; // 4: 各軸3問(12問) / 16: 各軸5問(20問)
+// 16パターン前提で各軸5問を採用
+function buildQuestions() {
+  const take = 5;
   const byAxis = { IE: [], RS: [], NF: [], SC: [] };
   for (const q of QUESTION_POOL) {
     const arr = byAxis[q.axis];
@@ -149,13 +141,12 @@ function computeType(answers, questions) {
 
   const parts = AXES.map((ax) => (sums[ax.key] >= 0 ? ax.left[0] : ax.right[0]));
   const code16 = parts.join("-");
-  const code4 = `${parts[0]}-${parts[2]}`; // IE × NF
 
-  return { sums, code16, code4 };
+  return { sums, code16 };
 }
 
-function AxisBar({ value, mode }) {
-  const range = mode === "4" ? 6 : 10; // 4:±6, 16:±10 目安
+function AxisBar({ value }) {
+  const range = 10; // 16タイプ用のスケール（±10程度）
   const pct = Math.max(0, Math.min(100, Math.round(((value + range) / (range * 2)) * 100)));
   return (
     <div>
@@ -170,17 +161,8 @@ function AxisBar({ value, mode }) {
   );
 }
 
-function ResultView({
-  answers,
-  onReset,
-  ageBand,
-  mode,
-  questions,
-  onUpgrade,
-  gender,
-  richnessScore,
-}) {
-  const { code16, code4, sums } = useMemo(
+function ResultView({ answers, onReset, ageBand, questions, gender, richnessScore }) {
+  const { code16, sums } = useMemo(
     () => computeType(answers, questions),
     [answers, questions]
   );
@@ -188,13 +170,9 @@ function ResultView({
   const filled = Object.keys(answers).length;
 
   const desc16 = DESCRIPTIONS_16[code16];
-  const desc4 = DESCRIPTIONS_4[code4];
-  const title = mode === "4" ? (desc4?.name || code4) : (desc16?.name || code16);
-  const summary =
-    mode === "4"
-      ? desc4?.summary || "あなたの傾向の要約です。"
-      : desc16?.summary || "あなたの傾向の要約です。";
-  const img = mode === "4" ? desc4?.img || "🌈" : desc16?.img || "🌈";
+  const title = desc16?.name || code16;
+  const summary = desc16?.summary || "あなたの傾向の要約です。";
+  const img = desc16?.img || "🌈";
 
   const quote = PEANUTS_QUOTES[Math.floor(Math.random() * PEANUTS_QUOTES.length)];
 
@@ -203,7 +181,7 @@ function ResultView({
       <div className="text-center">
         <div className="text-6xl mb-3">{img}</div>
         <h2 className="text-2xl md:text-3xl font-bold">
-          {title}（{mode === "4" ? "4パターン" : "16パターン"}）
+          {title}（16パターン）
         </h2>
         <p className="text-sm opacity-70">
           回答 {filled}/{total}
@@ -245,9 +223,9 @@ function ResultView({
         <div className="mt-2 text-sm opacity-70">— {quote.author}</div>
       </div>
 
-      {/* 軸バー（4モードはIE/NFのみ） */}
+      {/* 各軸バー（4軸すべて表示） */}
       <div className="grid md:grid-cols-2 gap-4">
-        {AXES.filter((ax) => mode === "16" || ax.key === "IE" || ax.key === "NF").map((ax) => (
+        {AXES.map((ax) => (
           <div key={ax.key} className={`rounded-2xl p-5 shadow border ${ax.color}`}>
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-semibold">
@@ -255,38 +233,31 @@ function ResultView({
               </h4>
               <span className="text-xs opacity-60">{ax.key}</span>
             </div>
-            <AxisBar value={sums[ax.key] || 0} mode={mode} />
+            <AxisBar value={sums[ax.key] || 0} />
           </div>
         ))}
       </div>
 
-      {/* 他タイプの簡易カード一覧 */}
+      {/* 他タイプの簡易カード一覧（16タイプ全部） */}
       <div className="rounded-2xl p-5 bg-white/70 border">
         <h3 className="font-semibold mb-3">他のタイプを見る</h3>
         <div className="grid md:grid-cols-2 gap-3">
-          {(mode === "4" ? Object.entries(DESCRIPTIONS_4) : Object.entries(DESCRIPTIONS_16)).map(
-            ([k, v]) => (
-              <div
-                key={k}
-                className="rounded-2xl p-3 bg-white border shadow-sm flex items-center gap-3"
-              >
-                <span className="text-2xl">{v.img}</span>
-                <div>
-                  <h4 className="font-semibold">{v.name}</h4>
-                  <p className="text-xs opacity-70">{v.summary}</p>
-                </div>
+          {Object.entries(DESCRIPTIONS_16).map(([k, v]) => (
+            <div
+              key={k}
+              className="rounded-2xl p-3 bg-white border shadow-sm flex items-center gap-3"
+            >
+              <span className="text-2xl">{v.img}</span>
+              <div>
+                <h4 className="font-semibold">{v.name}</h4>
+                <p className="text-xs opacity-70">{v.summary}</p>
               </div>
-            )
-          )}
+            </div>
+          ))}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3 justify-center">
-        {mode === "4" && (
-          <button onClick={onUpgrade} className="px-5 py-3 rounded-xl border">
-            さらに詳しく（16パターンへ）
-          </button>
-        )}
         <button onClick={onReset} className="px-5 py-3 rounded-xl border">
           もう一度診断する
         </button>
@@ -299,12 +270,11 @@ export default function App() {
   const [step, setStep] = useLocal("ybtiv1_step", "intro"); // "intro" | "quiz" | "result"
   const [answers, setAnswers] = useLocal("ybtiv1_answers", {});
   const [ageBand, setAgeBand] = useLocal("ybtiv1_ageBand", "");
-  const [mode, setMode] = useLocal("ybtiv1_mode", "4"); // "4" | "16"
   const [gender, setGender] = useLocal("ybtiv1_gender", "");
   const [richnessScore, setRichnessScore] = useLocal("ybtiv1_richnessScore", 50); // 0〜100
 
-  const questions = useMemo(() => buildQuestions(mode), [mode]);
-  const total = questions.length; // 4:12問 / 16:20問
+  const questions = useMemo(() => buildQuestions(), []);
+  const total = questions.length; // 20問
   const filled = questions.filter((q) => answers[q.id] != null).length;
 
   const setAnswer = (id, v) => setAnswers({ ...answers, [id]: v });
@@ -334,16 +304,11 @@ export default function App() {
     setStep("intro");
   };
 
-  const upgradeTo16 = () => {
-    setMode("16");
-    setStep("quiz");
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-blue-50 text-gray-900">
       <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-6">
         <h1 className="text-3xl md:text-4xl font-bold text-center">
-          YBTI – ゆたかさ診断（デモ）
+          YBTI – ゆたかさ診断（16タイプ版デモ）
         </h1>
 
         {step === "intro" && (
@@ -380,29 +345,11 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              {!gender && <p className="text-xs mt-2 opacity-60">※はじめる前に性別を選んでください。</p>}
-            </div>
-
-            <div className="rounded-2xl p-6 bg-white shadow border">
-              <h2 className="font-semibold mb-3">分析モードを選択</h2>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setMode("4")}
-                  className={`px-3 py-2 rounded-full border ${
-                    mode === "4" ? "bg-black text-white" : "bg-white hover:bg-gray-50"
-                  }`}
-                >
-                  4パターン分析（クイック・12問）
-                </button>
-                <button
-                  onClick={() => setMode("16")}
-                  className={`px-3 py-2 rounded-full border ${
-                    mode === "16" ? "bg-black text-white" : "bg-white hover:bg-gray-50"
-                  }`}
-                >
-                  16パターン分析（詳細・20問）
-                </button>
-              </div>
+              {!gender && (
+                <p className="text-xs mt-2 opacity-60">
+                  ※はじめる前に性別を選んでください。
+                </p>
+              )}
             </div>
 
             <button
@@ -467,9 +414,7 @@ export default function App() {
             answers={answers}
             onReset={resetAll}
             ageBand={ageBand}
-            mode={mode}
             questions={questions}
-            onUpgrade={upgradeTo16}
             gender={gender}
             richnessScore={richnessScore}
           />
