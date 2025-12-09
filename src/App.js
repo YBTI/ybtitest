@@ -619,7 +619,7 @@ export default function App() {
 {step === "intro" && (
   <div className="text-center text-gray-700 space-y-2 max-w-xl mx-auto">
     <p className="text-lg md:text-xl font-semibold">
-      あなたが“ゆたかさ”を感じるタイプを診断します。
+      あなたがどんな時“ゆたかさ”を感じるかを診断します。
     </p>
     <p className="text-sm md:text-base opacity-80 leading-relaxed">
       何を大切にすると、自分らしい”ゆたかさ”が育つのか。<br />
