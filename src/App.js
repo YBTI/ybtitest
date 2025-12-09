@@ -612,8 +612,22 @@ export default function App() {
       <div className="min-h-screen bg-gradient-to-b from-blue-500 via-blue-300 to-white text-gray-900">
         <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-6">
         <h1 className="text-3xl md:text-4xl font-bold text-center">
-          YBTI – ゆたかさ診断（16タイプデモ）
+          YBTI – ゆたかさ診断
         </h1>
+
+{/* 🔥 トップページ（intro）だけ説明文表示 */}
+{step === "intro" && (
+  <div className="text-center text-gray-700 space-y-2 max-w-xl mx-auto">
+    <p className="text-lg md:text-xl font-semibold">
+      あなたが“ゆたかさ”を感じるタイプを診断します。
+    </p>
+    <p className="text-sm md:text-base opacity-80 leading-relaxed">
+      何を大切にすると、自分らしい”ゆたかさ”が育つのか。<br />
+      質問に答えるだけで、あなたの価値観が診断できます。
+    </p>
+    <p className="text-xs opacity-60">― 所要時間：約3分 ―</p>
+  </div>
+)}
 
         {step === "intro" && (
           <div className="space-y-6">
